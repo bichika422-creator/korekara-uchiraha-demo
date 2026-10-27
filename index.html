@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"content="width=device-width,initial-scale=1.0">
+    <title>これからうちらは</title>
+<style>
+button{
+    font-size:20px;
+    padding:15px;
+    margin:10px;
+    display:block;
+    width:80%;
+    border-radius:20px;
+    background-color:#ffe4ec;
+    border:2px solid#f5b6ca;
+    color:#704457;
+} 
+body{
+    background-color:#fff7fa;
+    font-family:sans-serif;
+}
+h1{
+    text-align:center;
+    color:#b76e88;
+    font-size:30px;
+    margin:30px 0;
+    letter-spacing:3px;
+}       
+</style>
+</head>
+<body>
+<div id="loginArea">
+  <h2>ログイン</h2>
+  <input id="email" type="email" placeholder="メールアドレス">
+  <input id="password" type="password" placeholder="パスワード">
+  <button id="loginButton">ログイン</button>
+  <p id="loginMessage"></p>
+</div>
+
+    <h1>これからうちらは</h1>
+    <button onclick="addAction()">🎀追加🎀</button>
+    <button onclick="drawAction()">🌹抽選🌹</button>
+    <button onclick="showHistory()">🐶過去の記録🐶</button>
+<script> 
+let actions=
+JSON.parse(localStorage.getItem("actions"))||
+[]; 
+function updateActions(newActions){
+    actions=newActions;
+}
+window.updateActions=updateActions;
+window.saveActions=function(){
+    window.dispatchEvent(new Event("saveActions"));
+};
+function addAction(){
+    let action=prompt("やりたいことを入力してね");
+    if(action){
+       actions.push(action);
+       
+       localStorage.setItem("actions",
+    JSON.stringify(actions)); 
+       window.saveActions();
+        alert(action+"を追加したよ！");
+    }
+}
+function drawAction(){
+    if(actions.length==0){
+        alert("候補がありません");
+        return;
+    }
+    let selected=actions[Math.floor(Math.random()*
+actions.length)];
+    let completed=confirm("抽選結果:"+selected+"\n完了した？");
+    if(completed){
+        let comment=prompt("ひと言コメント");
+        actions.splice(actions.indexOf(selected),1);
+        localStorage.setItem("actions",
+        JSON.stringify(actions));
+        let
+        history=JSON.parse(localStorage.getItem("history"))
+        ||[];
+        history.push({action:selected,comment:comment});
+        localStorage.setItem("history",JSON.stringify(history));
+        window.saveActions();
+    }        
+}        
+function showHistory(){
+    let
+history=JSON.parse(localStorage.getItem("history"))
+||[];
+    if(history.length===0){
+        alert("まだ記録がありません");
+        return;
+    } 
+    let text="";
+    for(let item of history){
+        text+=item.action+"\n";
+        text+="ひとこと:"+(item.comment||"なし")
++"\n\n";    
+    }   
+    alert(text);
+}        
+</script>          
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+  import{getFirestore,doc,setDoc,onSnapshot}from"https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyDw8V1StAGVkUuwC6Cuye-6AtBxNbqubWU",
+    authDomain: "korekara-uchiraha-demo.firebaseapp.com",
+    projectId: "korekara-uchiraha-demo",
+    storageBucket: "korekara-uchiraha-demo.firebasestorage.app",
+    messagingSenderId: "231655923306",
+    appId: "1:231655923306:web:361ed68b9002e21a15f413"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const auth=getAuth(app);
+  const db=getFirestore(app);
+  const shareDoc=doc(db,"shared","ourActions");
+  window.addEventListener("saveActions",async()=>{
+    await setDoc(shareDoc,{
+        actions:JSON.parse(localStorage.getItem("actions"))||[]
+    },{merge:true});
+  });
+  onSnapshot(shareDoc,(snapshot)=>{
+    if(snapshot.exists()){
+        const data=snapshot.data();
+        localStorage.setItem("actions",JSON.stringify(data.actions||[]));
+        window.updateActions(data.actions||[]);
+        localStorage.setItem("history",JSON.stringify(data.history||[]));
+    }
+    window.addEventListener("saveActions", async () => {
+    const actions = JSON.parse(localStorage.getItem("actions")) || [];
+    const history = JSON.parse(localStorage.getItem("history")) || [];
+    await setDoc(shareDoc, { actions, history });
+});
+});
+  document.getElementById("loginButton").addEventListener("click", async () => {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+        document.getElementById("loginMessage").textContent = "ログイン成功！";
+    } catch (error) {
+        document.getElementById("loginMessage").textContent = "ログインできませんでした";
+        console.error(error);
+    }   
+});
+onAuthStateChanged(auth, (user) => {
+    const loginArea = document.getElementById("loginArea");
+
+    if (user) {
+        loginArea.style.display = "none";
+        console.log("ログイン中");
+    } else {
+        loginArea.style.display = "block";
+        console.log("未ログイン");
+    }
+});
+
+</script>
+</body>
+</html>        
